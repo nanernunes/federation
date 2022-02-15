@@ -27,12 +27,12 @@ func GetBrokers() (items map[string]brokers.Broker) {
 		case "AMQP":
 			var config amqp.AMQPConfig
 			env.Fetch(broker, &config)
-			items[strings.Split(broker, "_")[1]] = amqp.NewAMQP(&config)
+			items[strings.Split(broker, "_")[1]] = amqp.NewAMQP(broker, &config)
 
 		case "SNS":
 			var config aws.AWSConfig
 			env.Fetch(broker, &config)
-			items[strings.Split(broker, "_")[1]] = aws.NewSNS(aws.NewAWS(&config))
+			items[strings.Split(broker, "_")[1]] = aws.NewSNS(broker, aws.NewAWS(&config))
 
 		default:
 			continue

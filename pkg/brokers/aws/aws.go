@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -38,7 +38,7 @@ func (a *AWS) GetSession() *session.Session {
 
 	sess, err := session.NewSession(awsConfig)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	return sess

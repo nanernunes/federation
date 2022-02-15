@@ -1,27 +1,39 @@
 package aws
 
 import (
+	"context"
+
 	brk "github.com/nanernunes/federation/pkg/brokers"
 
 	"github.com/aws/aws-sdk-go/service/sns"
 )
 
 type SNS struct {
+	Name   string
 	AWS    *AWS
 	Client *sns.SNS
+	Errors chan error
 }
 
-func NewSNS(aws *AWS) *SNS {
+func NewSNS(name string, aws *AWS) *SNS {
 	svc := sns.New(aws.GetSession())
-	return &SNS{AWS: aws, Client: svc}
+	return &SNS{Name: name, AWS: aws, Client: svc}
+}
+
+func (s *SNS) GetName() string {
+	return s.Name
+}
+
+func (s *SNS) Connect(chan error) bool {
+	return false
 }
 
 func (s *SNS) Ack(message *brk.Message) error {
 	return nil
 }
 
-func (s *SNS) Subscribe(source string) (<-chan brk.Message, error) {
-	return nil, nil
+func (s *SNS) Subscribe(ctx context.Context, source string, chErr chan error) <-chan brk.Message {
+	return nil
 }
 
 func (s *SNS) Publish(

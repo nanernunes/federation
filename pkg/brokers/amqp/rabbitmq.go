@@ -1,6 +1,7 @@
 package amqp
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -18,33 +19,58 @@ type AMQPConfig struct {
 	TLS   bool
 }
 
-type AMQP struct {
-	Config  AMQPConfig
-	Client  *amqp.Connection
-	Channel *amqp.Channel
-}
-
-func NewAMQP(config *AMQPConfig) *AMQP {
+func (ac *AMQPConfig) GetConnectionString() string {
 	proto := "amqp"
-	if config.TLS {
+	if ac.TLS {
 		proto += "s"
 	}
 
-	vhost := config.Vhost
+	vhost := ac.Vhost
 	if vhost == "/" {
 		vhost = "%2F"
 	}
 
-	conn, err := amqp.Dial(fmt.Sprintf(
+	return fmt.Sprintf(
 		"%s://%s:%s@%s:%s/%s",
-		proto, config.User, config.Pass, config.Host, config.Port, vhost,
-	))
+		proto, ac.User, ac.Pass, ac.Host, ac.Port, vhost,
+	)
+}
+
+type AMQP struct {
+	Name    string
+	Config  *AMQPConfig
+	Client  *amqp.Connection
+	Channel *amqp.Channel
+	Errors  chan error
+}
+
+func NewAMQP(name string, config *AMQPConfig) *AMQP {
+	return &AMQP{
+		Name:   name,
+		Config: config,
+		Errors: make(chan error),
+	}
+}
+
+func (a *AMQP) GetName() string {
+	return a.Name
+}
+
+func (a *AMQP) Connect(errChan chan error) bool {
+	log.Printf("trying to connect %s:%s...\n", a.Config.Host, a.Config.Port)
+	conn, err := amqp.Dial(a.Config.GetConnectionString())
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return false
 	}
 
-	return &AMQP{Client: conn}
+	go func() {
+		err := <-conn.NotifyClose(make(chan *amqp.Error))
+		errChan <- err
+	}()
+
+	a.Client = conn
+	log.Printf("connection established at %s:%s\n", a.Config.Host, a.Config.Port)
+	return true
 }
 
 func (a *AMQP) GetChannel() *amqp.Channel {
@@ -64,7 +90,13 @@ func (a *AMQP) Ack(message *brk.Message) error {
 	return message.Original.(amqp.Delivery).Ack(false)
 }
 
-func (a *AMQP) Subscribe(source string) (<-chan brk.Message, error) {
+func (a *AMQP) Subscribe(ctx context.Context, source string, chErr chan error) <-chan brk.Message {
+	handleError := func(err error) {
+		if err != nil {
+			chErr <- err
+		}
+	}
+
 	queue, err := a.GetChannel().QueueDeclare(
 		fmt.Sprintf("%s-%s", source, "federation"),
 		true,  // durable
@@ -73,9 +105,7 @@ func (a *AMQP) Subscribe(source string) (<-chan brk.Message, error) {
 		true,  // noWait
 		amqp.Table{},
 	)
-	if err != nil {
-		fmt.Println(err)
-	}
+	handleError(err)
 
 	err = a.GetChannel().QueueBind(
 		queue.Name,
@@ -84,11 +114,9 @@ func (a *AMQP) Subscribe(source string) (<-chan brk.Message, error) {
 		true,   // noWait
 		amqp.Table{},
 	)
-	if err != nil {
-		fmt.Println(err)
-	}
+	handleError(err)
 
-	deliveryChan, error := a.GetChannel().Consume(
+	deliveryChan, err := a.GetChannel().Consume(
 		queue.Name,
 		"federation", // consumer
 		false,        // autoAck
@@ -97,6 +125,7 @@ func (a *AMQP) Subscribe(source string) (<-chan brk.Message, error) {
 		true,         // noWait
 		amqp.Table{},
 	)
+	handleError(err)
 
 	messages := make(chan brk.Message)
 
@@ -116,7 +145,7 @@ func (a *AMQP) Subscribe(source string) (<-chan brk.Message, error) {
 		}
 	}()
 
-	return messages, error
+	return messages
 }
 
 func (a *AMQP) Publish(

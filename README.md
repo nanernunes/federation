@@ -1,7 +1,7 @@
 # Federation
-Forward Messages Between Broker Topics
+Forward Messages Between Brokers
 
-## Declaring Backends (staticly) by Environment Variables
+## Declaring Backends (statically) by Environment Variables
 ```ini
 PROTOCOL_SINGLENAME_PROPERTY=value
 ```
@@ -18,6 +18,10 @@ AMQP_MYORIGIN_PASS=guest
 ### Declaring a static SNS Backend
 ```ini
 SNS_MYTARGET_REGION=us-east-1
+```
+
+When we define only the region, federation uses the current AWS IAM Role or the configured credentials in `~/.aws/credentials`. It's possible to define AWS Keys to override this behavior
+```ini
 SNS_MYTARGET_AWS_ACCESS_KEY_ID=XXXXXXXXXXX
 SNS_MYTARGET_AWS_SECRET_ACCESS_KEY=ZZZZZZZZZZZZZZZZZZZZZZ
 ```

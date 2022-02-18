@@ -11,6 +11,10 @@ import (
 	"github.com/nanernunes/federation/pkg/util/env"
 )
 
+const (
+	ReconnectionTimeout = 5 * time.Second
+)
+
 type Mapping struct {
 	Name   string   `json:"name"`
 	Source Endpoint `json:"source"`
@@ -24,7 +28,7 @@ func (m *Mapping) StartForwarding() {
 	for {
 
 		if ok := m.Source.Broker.Connect(errChan); !ok {
-			time.Sleep(time.Second * 5)
+			time.Sleep(ReconnectionTimeout)
 			continue
 		}
 
@@ -41,11 +45,21 @@ func (m *Mapping) StartForwarding() {
 
 		go func() {
 			for msg := range m.Source.Broker.Subscribe(ctx, m.Source.Topic, errChan) {
-				if debug.Enabled() {
-					log.Printf(string(msg.Body), msg.Headers, "\n")
+				sent, err := m.Target.Broker.Publish(m.Target.Topic, &msg, nil)
+				if err == nil {
+					m.Source.Broker.Ack(&msg)
+					if debug.Enabled() {
+						log.Printf(
+							">> %s - Message sent from %s to %s",
+							sent,
+							m.Source.Topic,
+							m.Target.Topic,
+						)
+					}
+				} else {
+					log.Printf(err.Error())
 				}
 
-				m.Source.Broker.Ack(&msg)
 			}
 		}()
 

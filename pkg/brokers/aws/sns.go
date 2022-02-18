@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"fmt"
 
 	brk "github.com/nanernunes/federation/pkg/brokers"
 
@@ -43,7 +44,7 @@ func (s *SNS) Publish(
 	attributes := make(map[string]*sns.MessageAttributeValue)
 
 	for key, value := range message.Headers {
-		dataType := "string"
+		dataType := "String"
 		stringValue := value.(string)
 
 		attributes[key] = &sns.MessageAttributeValue{
@@ -52,8 +53,10 @@ func (s *SNS) Publish(
 		}
 	}
 
+	arn := s.ToTopicArn(target)
+
 	result, err := s.Client.Publish(&sns.PublishInput{
-		TopicArn:          &target,
+		TopicArn:          &arn,
 		Message:           &message.Body,
 		MessageAttributes: attributes,
 	})
@@ -63,4 +66,13 @@ func (s *SNS) Publish(
 	}
 
 	return *result.MessageId, nil
+}
+
+func (s *SNS) ToTopicArn(topic string) string {
+	return fmt.Sprintf(
+		"arn:aws:sns:%s:%s:%s",
+		s.AWS.Config.AwsRegion,
+		s.AWS.AccountId,
+		topic,
+	)
 }

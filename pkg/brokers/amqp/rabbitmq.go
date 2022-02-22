@@ -2,6 +2,7 @@ package amqp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -134,13 +135,20 @@ func (a *AMQP) Subscribe(ctx context.Context, source string, chErr chan error) <
 			headers := make(map[string]interface{})
 
 			for key, value := range delivery.Headers {
-				headers[key] = value
+				switch value.(type) {
+				case amqp.Table:
+					if data, err := json.Marshal(value); err != nil {
+						headers[key] = string(data)
+					}
+				default:
+					headers[key] = value.(string)
+				}
 			}
 
 			messages <- brk.Message{
 				Original: delivery,
 				Body:     string(delivery.Body),
-				Headers:  delivery.Headers,
+				Headers:  headers,
 			}
 		}
 	}()
@@ -167,3 +175,4 @@ func (a *AMQP) Publish(
 
 	return "", err
 }
+

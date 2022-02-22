@@ -165,15 +165,10 @@ func (a *AMQP) Publish(
 		routingKey = v.(string)
 	}
 
-	attributes := make(amqp.Table)
-	for key, value := range message.Headers {
-		attributes[key] = value
-	}
-
 	err := a.GetChannel().Publish(target, routingKey, false, false, amqp.Publishing{
 		ContentType: "text/plain",
 		Body:        []byte(message.Body),
-		Headers:     attributes,
+		Headers:     amqp.Table(message.Headers),
 	})
 
 	return "", err

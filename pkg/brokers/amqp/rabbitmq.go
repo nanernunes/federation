@@ -135,13 +135,13 @@ func (a *AMQP) Subscribe(ctx context.Context, source string, chErr chan error) <
 			headers := make(map[string]interface{})
 
 			for key, value := range delivery.Headers {
-				switch value.(type) {
+				switch value := value.(type) {
 				case amqp.Table:
 					if data, err := json.Marshal(value); err != nil {
 						headers[key] = string(data)
 					}
 				default:
-					headers[key] = value.(string)
+					headers[key] = value
 				}
 			}
 
@@ -165,7 +165,10 @@ func (a *AMQP) Publish(
 		routingKey = v.(string)
 	}
 
-	attributes := amqp.Table(message.Headers)
+	attributes := make(amqp.Table)
+	for key, value := range message.Headers {
+		attributes[key] = value
+	}
 
 	err := a.GetChannel().Publish(target, routingKey, false, false, amqp.Publishing{
 		ContentType: "text/plain",
@@ -175,4 +178,3 @@ func (a *AMQP) Publish(
 
 	return "", err
 }
-

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	brk "github.com/nanernunes/federation/pkg/brokers"
+	"github.com/nanernunes/federation/pkg/util"
 
 	"github.com/aws/aws-sdk-go/service/sns"
 )
@@ -41,15 +42,15 @@ func (s *SNS) Publish(
 	target string, message *brk.Message, options map[string]interface{},
 ) (string, error) {
 
+	dataType := "String"
 	attributes := make(map[string]*sns.MessageAttributeValue)
 
 	for key, value := range message.Headers {
-		dataType := "String"
-		stringValue := value.(string)
-
-		attributes[key] = &sns.MessageAttributeValue{
-			DataType:    &dataType,
-			StringValue: &stringValue,
+		if parsed, err := util.ToString(value); err == nil {
+			attributes[key] = &sns.MessageAttributeValue{
+				DataType:    &dataType,
+				StringValue: &parsed,
+			}
 		}
 	}
 

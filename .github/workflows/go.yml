@@ -8,6 +8,23 @@ on:
 
 jobs:
 
+  cover:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.17
+        id: go
+      - uses: actions/checkout@v2
+      - run: go test -v ./...
+        env:
+          GO_TEST_ARGS: "-coverprofile=coverage.txt -covermode=atomic"
+      - uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
+
   build:
     runs-on: ubuntu-latest
     steps:

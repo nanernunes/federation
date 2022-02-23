@@ -1,6 +1,6 @@
 # Federation
 
-[![CI](https://github.com/nanernunes/federation/workflows/main/badge.svg)](https://launch-editor.github.com/actions?workflowID=master&event=push&nwo=nanernunes%2Ffederation)
+[![Go](https://github.com/nanernunes/federation/actions/workflows/go.yml/badge.svg)](https://github.com/nanernunes/federation/actions/workflows/go.yml)
 [![version](https://img.shields.io/github/tag/nanernunes/federation.svg)](https://github.com/nanernunes/federation/releases/latest)
 [![GoDoc](https://godoc.org/github.com/federation?status.png)](https://godoc.org/github.com/nanernunes/federation)
 [![license](https://img.shields.io/github/license/nanernunes/federation.svg)](../LICENSE.md)
